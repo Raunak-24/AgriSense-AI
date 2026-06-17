@@ -15,7 +15,10 @@ def evaluate_model(
     split: str = "val",
 ) -> Dict[str, float]:
     model = YOLO(str(model_path))
-    results = model.val(data=str(data_yaml), split=split, plots=True)
+    try:
+        results = model.val(data=str(data_yaml), split=split, plots=True)
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
+        raise RuntimeError(f"YOLO evaluation failed: {exc}") from exc
 
     metrics = {
         "precision": float(results.results_dict.get("metrics/precision(B)", 0.0)),

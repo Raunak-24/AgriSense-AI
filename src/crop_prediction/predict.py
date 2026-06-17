@@ -6,6 +6,8 @@ from typing import Any, Dict
 import joblib
 import pandas as pd
 
+from .preprocess import MISSING_CATEGORY_TOKEN
+
 
 class CropPredictor:
     def __init__(self, model_path: str | Path = "models/crop_prediction_model.pkl") -> None:
@@ -19,13 +21,13 @@ class CropPredictor:
     def predict(self, state: str, crop: str, season: str, cost: float) -> float:
         row = {
             "Crop": crop,
-            "Variety": "Unknown",
+            "Variety": MISSING_CATEGORY_TOKEN,
             "State": state,
             "Quantity": 0,
             "Season": season,
-            "Unit": "Unknown",
+            "Unit": MISSING_CATEGORY_TOKEN,
             "Cost": cost,
-            "Recommended Zone": "Unknown",
+            "Recommended Zone": MISSING_CATEGORY_TOKEN,
         }
         frame = pd.DataFrame([row], columns=self.feature_columns)
         return float(self.model.predict(frame)[0])

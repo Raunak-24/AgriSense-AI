@@ -11,7 +11,7 @@ from src.crop_prediction.predict import CropPredictor, load_metadata
 from src.crop_prediction.preprocess import clean_crop_data, load_crop_data
 from src.weed_detection.detect import run_detection
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 LOGGER = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -26,7 +26,7 @@ st.set_page_config(page_title="AgriSense-AI", page_icon="🌾", layout="wide")
 def _safe_load_crop_data() -> pd.DataFrame | None:
     try:
         return clean_crop_data(load_crop_data(CROP_DATA_PATH))
-    except Exception as exc:  # noqa: BLE001
+    except (FileNotFoundError, ValueError, pd.errors.ParserError) as exc:
         LOGGER.warning("Crop data unavailable: %s", exc)
         return None
 
@@ -83,7 +83,7 @@ def crop_prediction_page() -> None:
             st.success(f"Predicted Production: {prediction:,.2f}")
         except FileNotFoundError:
             st.error("Model missing. Train and save models/crop_prediction_model.pkl")
-        except Exception as exc:  # noqa: BLE001
+        except (ValueError, RuntimeError) as exc:
             st.error(f"Prediction failed: {exc}")
 
     st.subheader("Model Performance")
@@ -112,12 +112,17 @@ def weed_detection_page() -> None:
         temp_dir.mkdir(parents=True, exist_ok=True)
         image_path = temp_dir / uploaded.name
         image_path.write_bytes(uploaded.read())
-        st.image(str(image_path), caption="Uploaded image", use_container_width=True)
+        st.image(str(image_path), caption=f"Uploaded image: {uploaded.name}", use_container_width=True)
 
         if st.button("Run YOLO Inference", type="primary"):
             try:
                 result = run_detection(WEED_MODEL_PATH, image_path, output_dir=temp_dir)
-                st.image(result["output_image"], caption="Detected output", use_container_width=True)
+                total_detections = len(result["labels"])
+                st.image(
+                    result["output_image"],
+                    caption=f"Detected output ({total_detections} detections)",
+                    use_container_width=True,
+                )
                 st.write("Class counts:", result["counts"])
                 st.write(
                     "Detections:",
@@ -128,7 +133,7 @@ def weed_detection_page() -> None:
                 )
             except FileNotFoundError:
                 st.error("YOLO model missing. Add models/best.pt or train model first.")
-            except Exception as exc:  # noqa: BLE001
+            except (ValueError, RuntimeError) as exc:
                 st.error(f"Inference failed: {exc}")
 
 

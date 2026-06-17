@@ -24,6 +24,7 @@ REQUIRED_COLUMNS = [
     "Recommended Zone",
 ]
 TARGET_COLUMN = "Production"
+MISSING_CATEGORY_TOKEN = "MISSING_VALUE"
 
 
 def load_crop_data(csv_path: str | Path) -> pd.DataFrame:
@@ -32,7 +33,11 @@ def load_crop_data(csv_path: str | Path) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(f"Dataset not found at: {path}")
 
-    df = pd.read_csv(path)
+    try:
+        df = pd.read_csv(path)
+    except (pd.errors.EmptyDataError, pd.errors.ParserError) as exc:
+        raise ValueError(f"Invalid dataset format at {path}: {exc}") from exc
+
     missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
     if missing:
         raise ValueError(f"Dataset missing required columns: {missing}")
@@ -46,7 +51,7 @@ def clean_crop_data(df: pd.DataFrame) -> pd.DataFrame:
 
     for col in cleaned.columns:
         if cleaned[col].dtype == object:
-            cleaned[col] = cleaned[col].fillna("Unknown")
+            cleaned[col] = cleaned[col].fillna(MISSING_CATEGORY_TOKEN)
         else:
             cleaned[col] = cleaned[col].fillna(cleaned[col].median())
 

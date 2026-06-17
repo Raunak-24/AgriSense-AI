@@ -7,8 +7,15 @@ from typing import Dict, List
 import cv2
 from ultralytics import YOLO
 
+DEFAULT_CONFIDENCE = 0.25
 
-def run_detection(model_path: str | Path, image_path: str | Path, output_dir: str | Path = "outputs/predictions") -> Dict:
+
+def run_detection(
+    model_path: str | Path,
+    image_path: str | Path,
+    output_dir: str | Path = "outputs/predictions",
+    confidence: float = DEFAULT_CONFIDENCE,
+) -> Dict:
     model_path = Path(model_path)
     image_path = Path(image_path)
     output_dir = Path(output_dir)
@@ -21,7 +28,7 @@ def run_detection(model_path: str | Path, image_path: str | Path, output_dir: st
     output_dir.mkdir(parents=True, exist_ok=True)
 
     model = YOLO(str(model_path))
-    results = model.predict(source=str(image_path), save=False, conf=0.25)
+    results = model.predict(source=str(image_path), save=False, conf=confidence)
 
     result = results[0]
     boxes = result.boxes
